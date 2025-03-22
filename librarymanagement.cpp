@@ -1,16 +1,19 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <sstream>
 using namespace std;
 
 class Book {
 public:
-    string title, author;
     int id;
+    string title, author;
+
+    Book() {} // Default constructor for vector operations
 
     Book(int i, string t, string a) : id(i), title(t), author(a) {}
 
-    void display() {
+    void display() const {
         cout << "ID: " << id << " | Title: " << title << " | Author: " << author << endl;
     }
 };
@@ -50,29 +53,45 @@ public:
     }
 
     void deleteBook(int id) {
-        for (auto it = books.begin(); it != books.end(); ++it) {
-            if (it->id == id) {
-                books.erase(it);
-                saveToFile();
-                cout << "Book deleted successfully!\n";
-                return;
+        bool found = false;
+        vector<Book> updatedBooks;
+        for (const auto &book : books) {
+            if (book.id == id) {
+                found = true;
+            } else {
+                updatedBooks.push_back(book);
             }
         }
-        cout << "Book not found.\n";
+        if (found) {
+            books = updatedBooks;
+            saveToFile();
+            cout << "Book deleted successfully!\n";
+        } else {
+            cout << "Book not found.\n";
+        }
     }
 
     void saveToFile() {
         ofstream file(filename);
         for (const auto &book : books)
-            file << book.id << " " << book.title << " " << book.author << "\n";
+            file << book.id << "|" << book.title << "|" << book.author << "\n"; // Use "|" as delimiter
         file.close();
     }
 
     void loadFromFile() {
         ifstream file(filename);
-        int id; string title, author;
-        while (file >> id >> ws && getline(file, title, ' ') && getline(file, author))
-            books.push_back(Book(id, title, author));
+        string line;
+        while (getline(file, line)) {
+            stringstream ss(line);
+            string idStr, title, author;
+            getline(ss, idStr, '|'); 
+            getline(ss, title, '|'); 
+            getline(ss, author);
+
+            if (!idStr.empty()) {
+                books.push_back(Book(stoi(idStr), title, author));
+            }
+        }
         file.close();
     }
 };
@@ -86,12 +105,16 @@ int main() {
         cout << "\nLibrary Management System\n";
         cout << "1. Add Book\n2. Display Books\n3. Search Book\n4. Delete Book\n5. Exit\nChoice: ";
         cin >> choice;
-        
+        cin.ignore(); // Fix input issue
+
         switch (choice) {
             case 1:
-                cout << "Enter Book ID, Title, Author: ";
-                cin >> id >> ws;
+                cout << "Enter Book ID: ";
+                cin >> id;
+                cin.ignore(); // Clears newline
+                cout << "Enter Title: ";
                 getline(cin, title);
+                cout << "Enter Author: ";
                 getline(cin, author);
                 lib.addBook(id, title, author);
                 break;
